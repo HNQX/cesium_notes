@@ -1,139 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Title</title>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"
-    />
 
-    <style></style>
+<head>
+  <meta charset="UTF-8" />
+  <title>Title</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
 
-    <script src="../Build/Cesium/Cesium.js"></script>
-    <link rel="stylesheet" href="../Build/Cesium/Widgets/widgets.css" />
-  </head>
-  <body>
-    <style>
-      html,
-      body,
-      #cesiumContainer {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-    </style>
-    <div>
-      <button onclick="updateHPR('h',0.1)">增加heading</button>
-      <button onclick="updateHPR('h',-0.1)">减小heading</button>
-      <button onclick="updateHPR('p',0.1)">增加Pitch</button>
-      <button onclick="updateHPR('p',-0.1)">减小Pitch</button>
-      <button onclick="updateHPR('r',0.1)">增加Roll</button>
-      <button onclick="updateHPR('r',-0.1)">减小Roll</button>
-    </div>
-    <div id="cesiumContainer"></div>
-    <script>
-      Cesium.Ion.defaultAccessToken =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyZmJhMDliNy01YjM2LTQwNjEtYjgwOS0wYWU5YjdiNDFmMzYiLCJpZCI6MzMwMzgsImlhdCI6MTY0ODk1NDQ4Nn0.40b45six-VIgI_Ispd_d303GjItHzWCdvwMvYmnx-X0";
-      var widget = new Cesium.CesiumWidget("cesiumContainer");
-      var scene = widget.scene;
+  <style></style>
+  <script src="../lib/cesium1.89/Build/Cesium/Cesium.js"></script>
 
-      // 动画生效
-      widget.clock.shouldAnimate = true;
+</head>
 
-      var satelliteParams = {
-        heading: 0,
-        pitch: 0,
-        roll: 0,
-        x: 114,
-        y: 30,
-        z: 90000,
-        url: "./weixin.glb",
-      };
-      var headingPitchRoll = new Cesium.HeadingPitchRoll(0, 0, 0);
-      var matrix3Temp = new Cesium.Matrix3();
-      var model;
-      var primitives = new Cesium.PrimitiveCollection();
-      var position = Cesium.Cartesian3.fromDegrees(
-        satelliteParams.x,
-        satelliteParams.y,
-        satelliteParams.z
+<body>
+  <style>
+    @import url(../lib/cesium1.89/Build/CesiumUnminified/Widgets/widgets.css);
+
+    html,
+    body,
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+  <div>
+    <button onclick="updateHPR('h',0.1)">增加heading</button>
+    <button onclick="updateHPR('h',-0.1)">减小heading</button>
+    <button onclick="updateHPR('p',0.1)">增加Pitch</button>
+    <button onclick="updateHPR('p',-0.1)">减小Pitch</button>
+    <button onclick="updateHPR('r',0.1)">增加Roll</button>
+    <button onclick="updateHPR('r',-0.1)">减小Roll</button>
+  </div>
+  <div id="cesiumContainer"></div>
+  <script>
+    Cesium.Ion.defaultAccessToken =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyZmJhMDliNy01YjM2LTQwNjEtYjgwOS0wYWU5YjdiNDFmMzYiLCJpZCI6MzMwMzgsImlhdCI6MTY0ODk1NDQ4Nn0.40b45six-VIgI_Ispd_d303GjItHzWCdvwMvYmnx-X0";
+    var widget = new Cesium.CesiumWidget("cesiumContainer");
+    var scene = widget.scene;
+
+    // 动画生效
+    widget.clock.shouldAnimate = true;
+
+    var satelliteParams = {
+      heading: 0,
+      pitch: 0,
+      roll: 0,
+      x: 114,
+      y: 30,
+      z: 90000,
+      url: "./weixin.glb",
+    };
+    var headingPitchRoll = new Cesium.HeadingPitchRoll(0, 0, 0);
+    var matrix3Temp = new Cesium.Matrix3();
+    var model;
+    var primitives = new Cesium.PrimitiveCollection();
+    var position = Cesium.Cartesian3.fromDegrees(
+      satelliteParams.x,
+      satelliteParams.y,
+      satelliteParams.z
+    );
+    fetch(satelliteParams.url)
+      .then(function (stream) {
+        return stream.arrayBuffer();
+      })
+      .then(function (res) {
+        addSatellite(res);
+      });
+
+    function addSatellite(satelliteArrayBuffer) {
+      headingPitchRoll.heading = satelliteParams.heading;
+      headingPitchRoll.pitch = satelliteParams.pitch;
+      headingPitchRoll.roll = satelliteParams.roll;
+
+      var orientation = Cesium.Transforms.headingPitchRollQuaternion(
+        position,
+        headingPitchRoll
       );
-      fetch(satelliteParams.url)
-        .then(function (stream) {
-          return stream.arrayBuffer();
-        })
-        .then(function (res) {
-          addSatellite(res);
+      var modelMatrix = Cesium.Matrix4.fromRotationTranslation(
+        Cesium.Matrix3.fromQuaternion(orientation, matrix3Temp),
+        position
+      );
+      var options = {
+        modelMatrix: modelMatrix,
+        gltf: satelliteArrayBuffer,
+        scale: 50,
+        silhouetteColor: Cesium.Color.BLUE,
+        silhouetteSize: 4.0,
+        minimumPixelSize: 64,
+        maximumScale: 256,
+      };
+
+      model = new Cesium.Model(options);
+      model.readyPromise.then(function (model) {
+        model.activeAnimations.addAll({
+          speedup: 0.5,
+          loop: Cesium.ModelAnimationLoop.REPEAT,
         });
+      });
+      primitives.add(model);
 
-      function addSatellite(satelliteArrayBuffer) {
-        headingPitchRoll.heading = satelliteParams.heading;
-        headingPitchRoll.pitch = satelliteParams.pitch;
-        headingPitchRoll.roll = satelliteParams.roll;
+      //scene.primitives.add(model); //也 ok
+      scene.primitives.add(primitives);
 
-        var orientation = Cesium.Transforms.headingPitchRollQuaternion(
-          position,
-          headingPitchRoll
-        );
-        var modelMatrix = Cesium.Matrix4.fromRotationTranslation(
-          Cesium.Matrix3.fromQuaternion(orientation, matrix3Temp),
-          position
-        );
-        var options = {
-          modelMatrix: modelMatrix,
-          gltf: satelliteArrayBuffer,
-          scale: 50,
-          silhouetteColor: Cesium.Color.BLUE,
-          silhouetteSize: 4.0,
-          minimumPixelSize: 64,
-          maximumScale: 256,
-        };
+      scene.camera.flyTo({
+        destination: position,
+      });
+    }
 
-        model = new Cesium.Model(options);
-        model.readyPromise.then(function (model) {
-          model.activeAnimations.addAll({
-            speedup: 0.5,
-            loop: Cesium.ModelAnimationLoop.REPEAT,
-          });
-        });
-        primitives.add(model);
+    function updateHPR(type, offset) {
+      switch (type) {
+        case "h":
+          satelliteParams.heading += offset;
+          break;
 
-        //scene.primitives.add(model); //也 ok
-        scene.primitives.add(primitives);
+        case "p":
+          satelliteParams.pitch += offset;
+          break;
 
-        scene.camera.flyTo({
-          destination: position,
-        });
+        case "r":
+          satelliteParams.roll += offset;
+          break;
       }
+      var hpr = new Cesium.HeadingPitchRoll(
+        satelliteParams.heading,
+        satelliteParams.pitch,
+        satelliteParams.roll
+      );
+      var modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(
+        position,
+        hpr
+      );
+      model.modelMatrix = modelMatrix;
+    }
+  </script>
+</body>
 
-      function updateHPR(type, offset) {
-        switch (type) {
-          case "h":
-            satelliteParams.heading += offset;
-            break;
-
-          case "p":
-            satelliteParams.pitch += offset;
-            break;
-
-          case "r":
-            satelliteParams.roll += offset;
-            break;
-        }
-        var hpr = new Cesium.HeadingPitchRoll(
-          satelliteParams.heading,
-          satelliteParams.pitch,
-          satelliteParams.roll
-        );
-        var modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(
-          position,
-          hpr
-        );
-        model.modelMatrix = modelMatrix;
-      }
-    </script>
-  </body>
 </html>
